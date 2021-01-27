@@ -1,4 +1,4 @@
-# IDFM5Paper for ESP-IDF, Arduino and M5EPD as component
+# M5Paper for ESP-IDF, Arduino and M5EPD as component
 
 ## How to use example
 
