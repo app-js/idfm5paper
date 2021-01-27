@@ -1,3 +1,5 @@
+message(STATUS "Settings M5EPD")
+
 set(IDF_PATH_CMAKE $ENV{IDF_PATH})
 
 string(REPLACE "\\" "/" IDF_PATH_CMAKE "${IDF_PATH_CMAKE}")
@@ -10,7 +12,7 @@ set(COMPONENT_ADD_INCLUDEDIRS
         "${IDF_PATH_CMAKE}/components/wifi_provisioning/include" 
         "${IDF_PATH_CMAKE}/components/protocomm/include/common"
         "${IDF_PATH_CMAKE}/components/protocomm/include/security"
-        "../arduino/tools/sdk/esp32/include/soc/esp32/include/soc")
+        "${IDF_PATH_CMAKE}/components/soc/include")
 
 list(APPEND COMPONENT_REQUIRES "arduino")
 
@@ -18,6 +20,9 @@ set(CONFIG_BT_BLUEDROID_ENABLED 1)
 
 register_component()
 
+component_compile_options(
+        -Wno-unused-const-variable
+	-Wno-missing-field-initializers)
 
 set(DEFINITIONS "ESP32")
 
