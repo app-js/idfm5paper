@@ -8,4 +8,4 @@ register_component()
 
 component_compile_options(
                 -Wno-unused-const-variable
-	        -Wno-missing-field-initializers)
+	            -Wno-missing-field-initializers)

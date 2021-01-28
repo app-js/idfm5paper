@@ -131,7 +131,10 @@ int Frame_WifiScan::scan()
 {
     WiFi.mode(WIFI_STA);
     // WiFi.disconnect();
-    WiFi.scanNetworks(true);
+    log_d("idfm5: WiFi.scanNetworks");
+    int ret = WiFi.scanNetworks(true);
+
+    log_d("idfm5: scanNetworks returns %d",ret);
 
     if(_scan_count > 0)
     {
@@ -142,80 +145,90 @@ int Frame_WifiScan::scan()
     }
     _scan_count++;
     
-    int wifi_num;
-    while(1)
-    {
-        wifi_num = WiFi.scanComplete();
-        if(wifi_num >= 0)
-        {
-            break;
-        }
-    }
+    int wifi_num = 0;
 
-    int connect_wifi_idx = -1;
-    if(_connected)
+    if (ret < 0)
     {
-        for(int i = 0; i < wifi_num; i++)
+        log_d("idfm5: scanNetworks failed: %d",ret);
+    }
+    else 
+    {
+        while(1)
         {
-            String ssid = WiFi.SSID(i);
-            
-            if(ssid == _connect_ssid)
+            log_d("idfm5: WiFi.scanComplete");
+            wifi_num = WiFi.scanComplete();
+            log_d("idfm5: scanComplete Networks: %d",wifi_num);
+            if(wifi_num >= 0)
             {
-                connect_wifi_idx = i;
-                if(WiFi.RSSI(i) < -90)
-                {
-                    connect_wifi_idx = -1;
-                }
                 break;
             }
         }
-        if(connect_wifi_idx == -1)
+
+        int connect_wifi_idx = -1;
+        if(_connected)
         {
-            WiFi.disconnect();
-            _key_wifi[0]->SetEnable(true);
-            _connected = 0;
-            for(int i = 1; i < MAX_BTN_NUM; i++)
+            for(int i = 0; i < wifi_num; i++)
             {
-                _key_wifi[i]->SetPos(_key_wifi[i]->getX(), _key_wifi[i]->getY() - 32);
+                String ssid = WiFi.SSID(i);
+                
+                if(ssid == _connect_ssid)
+                {
+                    connect_wifi_idx = i;
+                    if(WiFi.RSSI(i) < -90)
+                    {
+                        connect_wifi_idx = -1;
+                    }
+                    break;
+                }
+            }
+            if(connect_wifi_idx == -1)
+            {
+                WiFi.disconnect();
+                _key_wifi[0]->SetEnable(true);
+                _connected = 0;
+                for(int i = 1; i < MAX_BTN_NUM; i++)
+                {
+                    _key_wifi[i]->SetPos(_key_wifi[i]->getX(), _key_wifi[i]->getY() - 32);
+                }
             }
         }
-    }
 
-    wifi_num = wifi_num > MAX_WIFI_NUM ? MAX_WIFI_NUM : wifi_num;
-    wifi_num -= _connected;
+        wifi_num = wifi_num > MAX_WIFI_NUM ? MAX_WIFI_NUM : wifi_num;
+        wifi_num -= _connected;
 
-    for(int i = _connected; i < MAX_BTN_NUM; i++)
-    {
-        _key_wifi[i]->SetHide(true);
-    }
-
-    if(_connected)
-    {
-        _key_wifi[0]->Draw(UPDATE_MODE_A2);
-    }
-
-    int idx = 0, cnt = _connected;
-    while(1)
-    {
-        if(idx == connect_wifi_idx)
+        for(int i = _connected; i < MAX_BTN_NUM; i++)
         {
+            _key_wifi[i]->SetHide(true);
+        }
+
+        if(_connected)
+        {
+            _key_wifi[0]->Draw(UPDATE_MODE_A2);
+        }
+
+        int idx = 0, cnt = _connected;
+        while(1)
+        {
+            if(idx == connect_wifi_idx)
+            {
+                idx++;
+                continue;
+            }
+
+            String ssid = WiFi.SSID(idx);
+            DrawItem(_key_wifi[cnt], ssid, WiFi.RSSI(idx));
+            _key_wifi[cnt]->Draw(UPDATE_MODE_A2);
+
             idx++;
-            continue;
+            if(idx == wifi_num)
+            {
+                break;
+            }
+
+            cnt++;
         }
-
-        String ssid = WiFi.SSID(idx);
-        DrawItem(_key_wifi[cnt], ssid, WiFi.RSSI(idx));
-        _key_wifi[cnt]->Draw(UPDATE_MODE_A2);
-
-        idx++;
-        if(idx == wifi_num)
-        {
-            break;
-        }
-
-        cnt++;
     }
-    
+
     _key_wifi[wifi_num]->SetCustomString("_$refresh$_");
     _key_wifi[wifi_num]->SetHide(false);
     _key_wifi[wifi_num]->CanvasNormal()->fillCanvas(0);
