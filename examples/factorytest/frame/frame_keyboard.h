@@ -2,7 +2,7 @@
 #define _FRAME_KEYBOARD_H_
 
 #include "frame_base.h"
-#include "../____epdgui/epdgui.h"
+#include "../epdgui/epdgui.h"
 
 class Frame_Keyboard : public Frame_Base
 {

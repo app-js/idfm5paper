@@ -1,5 +1,5 @@
 #include "systeminit.h"
-#include "____epdgui/epdgui.h"
+#include "epdgui/epdgui.h"
 #include "frame/frame.h"
 #include "Free_Fonts.h"
 #include "global_setting.h"

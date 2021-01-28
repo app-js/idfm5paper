@@ -113,7 +113,7 @@ Frame_Compare::Frame_Compare(void)
     for(int i = 1; i < 8; i++)
     {
         _key_updatemode[i] = new EPDGUI_Button(0, 168 + (i-1) * 108, 100, 100);
-        char buf[10];
+        char buf[20];
         sprintf(buf, "%d", i);
         _key_updatemode[i]->SetCustomString(buf);
         _key_updatemode[i]->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0, _key_updatemode[i]);
