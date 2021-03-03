@@ -1,4 +1,4 @@
 # Miscellaneous
 build/
-# /sdkconfig
+/sdkconfig
 sdkconfig.old
