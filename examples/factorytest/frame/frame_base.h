@@ -11,6 +11,7 @@ class Frame_Base
 public:
     Frame_Base(bool _has_title = true);
     void exitbtn(String title, uint16_t width = 150);
+    void trbtn(String title, uint16_t width = 190);
     virtual ~Frame_Base();
     virtual int run();
     virtual void exit();
@@ -19,12 +20,19 @@ public:
     int isRun() {return _is_run;}
     void SetFrameID(uint32_t id) {_frame_id = id;}
     uint32_t GetFrameID() {return _frame_id;}
+    static int connect_reply;
+    static int disconnect_reply;
+    static int scan_reply;
+    static void cb_connect_ok(void *pvParameter);
+    static void cb_disconnect_ok(void *pvParameter);
+    static void cb_scan_ok(void *pvParameter);
 protected:
     static void exit_cb(epdgui_args_vector_t &args);
     String _frame_name;
     int _is_run = 1;
     M5EPD_Canvas *_canvas_title = NULL;
     EPDGUI_Button *_key_exit = NULL;
+    EPDGUI_Button *_key_tr = NULL;
     uint32_t _frame_id;
 };
 

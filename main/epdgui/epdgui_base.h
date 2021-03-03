@@ -3,6 +3,8 @@
 
 #include <M5EPD.h>
 #include <vector>
+#include "../global_setting.h"
+#include "../resources/ImageResource.h"
 
 typedef std::vector<void*> epdgui_args_vector_t;
 
@@ -41,7 +43,7 @@ protected:
     String _user_custom_str;
     int16_t _x, _y, _w, _h;
     int16_t _rx, _by;
-    uint32_t _id = 0;
+    uint32_t _id;
     bool _issel = false;
     bool _ishide = false;
     bool _isenable = true;

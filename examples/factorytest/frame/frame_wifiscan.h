@@ -15,9 +15,13 @@ public:
     void Connect();
     void DrawItem(EPDGUI_Button *btn, String ssid, int rssi);
     void SetConnected(String ssid, int rssi);
+    static void disconnect(epdgui_args_vector_t &args);
+    static EPDGUI_Button *_key_wifi[14];
 
 private:
-    EPDGUI_Button *_key_wifi[14];
+    void resetButtons();
+    void moveButtons(int ypos);
+    void Discon();
     uint8_t _language;
     uint32_t _scan_count = 0;
     bool _connect;

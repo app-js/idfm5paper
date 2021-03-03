@@ -45,8 +45,8 @@ void SysInit_Start(void)
 
     M5.EPD.begin(M5EPD_SCK_PIN, M5EPD_MOSI_PIN, M5EPD_MISO_PIN, M5EPD_CS_PIN, M5EPD_BUSY_PIN);
     M5.EPD.Clear(true);
-    M5.EPD.SetRotation(M5EPD_Driver::ROTATE_90);
-    M5.TP.SetRotation(GT911::ROTATE_90);
+    M5.EPD.SetRotation(M5EPD_Driver::ROTATE_270);
+    M5.TP.SetRotation(GT911::ROTATE_270);
 
     disableCore0WDT();
     xTaskCreatePinnedToCore(SysInit_Loading, "SysInit_Loading", 4096, NULL, 1, NULL, 0);

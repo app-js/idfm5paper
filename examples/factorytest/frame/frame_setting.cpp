@@ -1,7 +1,6 @@
 #include "frame_setting.h"
 #include "frame_setting_language.h"
 #include "frame_setting_wallpaper.h"
-#include "WiFi.h"
 
 #define KEY_W 92
 #define KEY_H 92
@@ -65,7 +64,7 @@ void key_synctime_cb(epdgui_args_vector_t &args)
     info.setTextColor(0);
     info.setTextDatum(CC_DATUM);
     uint8_t language = GetLanguage();
-    if(WiFi.status() != WL_CONNECTED)
+    if(0)
     {
         if(language == LANGUAGE_JA)
         {

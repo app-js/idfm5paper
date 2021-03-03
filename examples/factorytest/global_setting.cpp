@@ -217,7 +217,7 @@ String GetWifiPassword(void)
 
 bool SyncNTPTime(void)
 {
-    const char *ntpServer = "time.cloudflare.com";
+    const char *ntpServer = "0.de.pool.ntp.org";
     configTime(global_timezone * 3600, 0, ntpServer);
 
     struct tm timeInfo;

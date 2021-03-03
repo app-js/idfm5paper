@@ -1,14 +1,35 @@
 {
   "C_Cpp.clang_format_style": "Visual Studio",
   "editor.formatOnSave": false,
+  "C_Cpp.intelliSenseEngine": "Tag Parser",
+  "cmake.configureOnOpen": true,
+  "idf.flashType": "UART",
+  "idf.port": "/dev/cu.usbserial-021420B8",
+  "idf.portWin": "COM6",
   "[cpp]": {
     "editor.quickSuggestions": true
   },
   "[c]": {
     "editor.quickSuggestions": true
   },
-  "C_Cpp.intelliSenseEngine": "Tag Parser",
-  "cmake.configureOnOpen": true,
-  "idf.flashType": "UART",
-  "idf.port": "/dev/cu.usbserial-021420B8"
+  "files.associations": {
+    "spiram.h": "c",
+    "random": "cpp",
+    "xstring": "cpp",
+    "xtree": "cpp",
+    "string": "cpp",
+    "ios": "cpp",
+    "*.tcc": "cpp",
+    "*.ipp": "cpp",
+    "filesystem": "cpp",
+    "stdexcept": "cpp",
+    "nvs.h": "c",
+    "vector": "cpp",
+    "typeinfo": "cpp",
+    "list": "cpp",
+    "istream": "cpp",
+    "ostream": "cpp",
+    "xhash": "cpp",
+    "json.h": "c"
+  },
 }

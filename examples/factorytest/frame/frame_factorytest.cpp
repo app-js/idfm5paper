@@ -1,5 +1,4 @@
 #include "frame_factorytest.h"
-#include "WiFi.h"
 
 #define POS_LX (15)
 #define POS_RX (240 - 15)
@@ -211,25 +210,41 @@ void Frame_FactoryTest::drawPassCount(m5epd_update_mode_t mode)
     _canvas_pass->pushCanvas(375, 28, mode);
 }
 
+#include "esp_wifi.h"
+#include "wifi_manager.h"
+
 void Frame_FactoryTest::scan(String *ssid, int32_t *rssi)
 {
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-    WiFi.scanNetworks(true);
+    uint16_t wifi_num = 0;
 
-    int wifi_num;
-    while (1)
+	wifi_manager_set_callback(WM_EVENT_SCAN_DONE, &cb_scan_ok);
+    scan_reply = 0;
+    
+    wifi_manager_scan_async();
+
+    uint32_t start_time = millis();
+    while (scan_reply == 0)
     {
-        wifi_num = WiFi.scanComplete();
-        if (wifi_num >= 0)
+        if (millis() - start_time > 15000)
         {
-            break;
+            return;
         }
+        sleep(1);
     }
 
-    *ssid = WiFi.SSID(0);
-    *rssi = WiFi.RSSI(0);
-    WiFi.scanDelete();
+    if (scan_reply >= 2)
+    {
+        log_d("Frame_WifiScan::scan() failed");
+        return;
+    }
+
+    wifi_num = wifi_manager_get_anum();
+    if (wifi_num >= 1)
+    {
+        wifi_ap_record_t ap = wifi_manager_get_ap(0);
+        *ssid = (char*)(ap.ssid);
+        *rssi = ap.rssi;
+    }
 }
 
 int Frame_FactoryTest::run()
@@ -377,11 +392,11 @@ int Frame_FactoryTest::run()
         if (_isfirst)
         {
             String ssid;
-            int32_t rssi;
+            int32_t rssi = 0;
             scan(&ssid, &rssi);
             sprintf(buf, "%s (%d db)", ssid.c_str(), rssi);
             _wifistr = String(buf);
-            if (rssi > -55)
+            if (ssid.length() >= 1)
             {
                 pass_flag |= 0x20;
             }

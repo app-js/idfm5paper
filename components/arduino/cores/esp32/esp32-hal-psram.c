@@ -14,6 +14,25 @@
 
 #include "esp32-hal.h"
 
+#if CONFIG_SPIRAM_SUPPORT 
+    int _CONFIG_SPIRAM_SUPPORT = 1;
+#else
+    int _CONFIG_SPIRAM_SUPPORT = 0;
+#endif
+
+#if CONFIG_SPIRAM 
+    int _CONFIG_SPIRAM = 1;
+#else
+    int _CONFIG_SPIRAM = 0;
+#endif
+
+#if CONFIG_ESP32_SPIRAM_SUPPORT
+ 
+    int _CONFIG_ESP32_SPIRAM_SUPPORT = 1;
+#else
+    int _CONFIG_ESP32_SPIRAM_SUPPORT = 0;
+#endif
+
 #if CONFIG_SPIRAM_SUPPORT || CONFIG_SPIRAM
 #include "soc/efuse_reg.h"
 #include "esp_heap_caps.h"
@@ -81,7 +100,6 @@ bool psramInit(){
 #endif
 #endif
     spiramDetected = true;
-    log_d("PSRAM enabled");
     return true;
 }
 

@@ -10,7 +10,6 @@ EPDGUI_Base::EPDGUI_Base(int16_t x, int16_t y, int16_t w, int16_t h)
     this->_h = h;
     _rx = _x + _w;
     _by = _y + _h;
-    _id = 0;
 }
 
 EPDGUI_Base::EPDGUI_Base()

@@ -29,11 +29,11 @@ EPDGUI_Base(x, y, w, h)
     this->_CanvasPressed->createCanvas(_w, _h);
 
     this->_CanvasNormal->fillCanvas(0);
-    this->_CanvasNormal->setTextSize(36);
+    this->_CanvasNormal->setTextSize(26);
     this->_CanvasNormal->setTextColor(15);
 
     this->_CanvasPressed->fillCanvas(15);
-    this->_CanvasPressed->setTextSize(36);
+    this->_CanvasPressed->setTextSize(26);
     this->_CanvasPressed->setTextColor(0);
     if(style & STYLE_SOLIDBORDER)
     {
@@ -165,7 +165,7 @@ void EPDGUI_Button::setBMPButton(String label_l, String label_r, const uint8_t *
 {
     _CanvasNormal->fillCanvas(0);
     _CanvasNormal->drawRect(0, 0, _w, _h, 15);
-    _CanvasNormal->setTextSize(36);
+    _CanvasNormal->setTextSize(26);
     _CanvasNormal->setTextColor(15);
     if(label_l.length())
     {
@@ -187,13 +187,13 @@ void EPDGUI_Button::setLabel(String label)
     _label = label;
     this->_CanvasNormal->fillCanvas(0);
     this->_CanvasNormal->drawRect(0, 0, _w, _h, 15);
-    this->_CanvasNormal->setTextSize(36);
+    this->_CanvasNormal->setTextSize(26);
     this->_CanvasNormal->setTextDatum(CC_DATUM);
     this->_CanvasNormal->setTextColor(15);
     this->_CanvasNormal->drawString(_label,  _w / 2, _h / 2 + 3);
 
     this->_CanvasPressed->fillCanvas(15);
-    this->_CanvasPressed->setTextSize(36);
+    this->_CanvasPressed->setTextSize(26);
     this->_CanvasPressed->setTextDatum(CC_DATUM);
     this->_CanvasPressed->setTextColor(0);
     this->_CanvasPressed->drawString(_label, _w / 2, _h / 2 + 3);

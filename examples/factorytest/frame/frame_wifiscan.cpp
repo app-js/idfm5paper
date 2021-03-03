@@ -1,6 +1,7 @@
 #include "frame_wifiscan.h"
 #include "frame_wifipassword.h"
-#include <WiFi.h>
+#include "esp_wifi.h"
+#include "wifi_manager.h"
 
 #define MAX_BTN_NUM     14
 #define MAX_WIFI_NUM    (MAX_BTN_NUM - 1)
@@ -13,6 +14,8 @@ const uint8_t *kIMGWifiLevel[4] = {
     ImageResource_item_icon_wifi_2_32x32,
     ImageResource_item_icon_wifi_3_32x32
 };
+
+EPDGUI_Button *Frame_WifiScan::_key_wifi[14];
 
 void key_wifi_cb(epdgui_args_vector_t &args)
 {
@@ -34,7 +37,6 @@ void key_wifi_cb(epdgui_args_vector_t &args)
     }
 }
 
-
 Frame_WifiScan::Frame_WifiScan(void)
 {
     _frame_name = "Frame_WifiScan";
@@ -51,25 +53,17 @@ Frame_WifiScan::Frame_WifiScan(void)
         _key_wifi[i]->Bind(EPDGUI_Button::EVENT_RELEASED, key_wifi_cb);
     }
  
-    _language = GetLanguage();
-    if(_language == LANGUAGE_JA)
-    {
-        exitbtn("ホーム");
-        _canvas_title->drawString("WLAN", 270, 34);
-    }
-    else if(_language == LANGUAGE_ZH)
-    {
-        exitbtn("主页");
-        _canvas_title->drawString("无线局域网", 270, 34);
-    }
-    else
-    {
-        exitbtn("Home");
-        _canvas_title->drawString("WLAN", 270, 34);
-    }
+    _canvas_title->drawString("WLAN", 270, 34);
 
+    exitbtn("Home");
     _key_exit->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0, (void*)(&_is_run));
     _key_exit->Bind(EPDGUI_Button::EVENT_RELEASED, &Frame_Base::exit_cb);
+
+    trbtn("Disconnect");
+    _key_tr->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0, (void*)(&_connected));
+    _key_tr->AddArgs(EPDGUI_Button::EVENT_RELEASED, 1, (void*)(&_update_flag));
+    _key_tr->AddArgs(EPDGUI_Button::EVENT_RELEASED, 2, (void*)(&_connect_ssid));
+    _key_tr->Bind(EPDGUI_Button::EVENT_RELEASED, &disconnect);
 
     _update_flag = true;
     _connected = 0;
@@ -77,14 +71,72 @@ Frame_WifiScan::Frame_WifiScan(void)
 
 Frame_WifiScan::~Frame_WifiScan(void)
 {
+    log_d("Frame_WifiScan::~Frame_WifiScan(void)");
     for(int i = 0; i < MAX_BTN_NUM; i++)
     {
         delete _key_wifi[i];
     }
 }
 
+void Frame_WifiScan::moveButtons(int ypos)
+{
+    log_d("Frame_WifiScan::moveButtons(%d)",ypos);
+    for(int i = 1; i < MAX_BTN_NUM; i++)
+    {
+        _key_wifi[i]->SetPos(_key_wifi[i]->getX(), _key_wifi[i]->getY() + ypos);
+    }
+}
+
+void Frame_WifiScan::resetButtons()
+{
+    log_d("Frame_WifiScan::resetButtons()");
+    for(int i = 0; i < MAX_BTN_NUM; i++)
+    {
+        _key_wifi[i]->SetPos(4, 100 + i * 60);
+    }
+}
+
+void Frame_WifiScan::disconnect(epdgui_args_vector_t &args)
+{
+    log_d("tr button disconnect");
+    if ( *((uint8_t*)(args[0])) )
+    {
+        log_d("start disconnect");
+        wifi_manager_set_callback(WM_EVENT_STA_DISCONNECTED, &cb_disconnect_ok);
+        disconnect_reply = 0;
+        wifi_manager_disconnect_async();
+
+        uint32_t start_time  = millis();
+        while (disconnect_reply == 0)
+        {
+            if (millis() - start_time > 15000)
+            {
+                log_d("disconnect timeout");
+                break;
+            }
+            sleep(1);
+        }
+
+        log_d("disconnect disconnected");
+
+        for(int i = 0; i < MAX_BTN_NUM; i++)
+        {
+            _key_wifi[i]->SetPos(4, 100 + i * 60);
+            _key_wifi[i]->SetEnable(true);
+        }
+        *((uint8_t*)(args[0])) = 0;
+        *((String*)(args[2])) = "";
+        *((bool*)(args[1])) = true;
+    }
+    else
+       log_d("not connected");
+    log_d("disconnect done");
+}
+
 void Frame_WifiScan::DrawItem(EPDGUI_Button *btn, String ssid, int rssi)
 {
+    log_d("Frame_WifiScan::DrawItem(%s, %d)",ssid.c_str(),rssi);
+
     int level = 0;
     if(rssi > -55)
     {
@@ -114,13 +166,16 @@ void Frame_WifiScan::DrawItem(EPDGUI_Button *btn, String ssid, int rssi)
 
 int Frame_WifiScan::run()
 {
+    // log_d("Frame_WifiScan::run()");
     if(_connect)
     {
+        log_d("Connect()");
         _connect = false;
         Connect();
     }
     if(_update_flag)
     {
+        log_d("scan()");
         _update_flag = false;
         scan();
     }
@@ -129,137 +184,135 @@ int Frame_WifiScan::run()
 
 int Frame_WifiScan::scan()
 {
-    WiFi.mode(WIFI_STA);
-    // WiFi.disconnect();
-    log_d("idfm5: WiFi.scanNetworks");
-    int ret = WiFi.scanNetworks(true);
+    log_d("Frame_WifiScan::scan()");
+    uint16_t wifi_num = 0;
+    wifi_ap_record_t ap;
 
-    log_d("idfm5: scanNetworks returns %d",ret);
+	wifi_manager_set_callback(WM_EVENT_SCAN_DONE, &cb_scan_ok);
+    scan_reply = 0;
+    
+    wifi_manager_scan_async();
+
+    uint32_t start_time = millis();
+    while (scan_reply == 0)
+    {
+        if (millis() - start_time > 15000)
+        {
+            return 0;
+        }
+        sleep(1);
+    }
+
+    if (scan_reply >= 2)
+    {
+        log_d("Frame_WifiScan::scan() failed");
+        return 0;
+    }
+
+    wifi_num = wifi_manager_get_anum();
+    log_d("Frame_WifiScan::wifi_num = %d _connected = %d",wifi_num,_connected);
 
     if(_scan_count > 0)
     {
         M5.EPD.WriteFullGram4bpp(GetWallpaper());
         _canvas_title->pushCanvas(0, 8, UPDATE_MODE_NONE);
         _key_exit->Draw(UPDATE_MODE_NONE);
+        _key_tr->Draw(UPDATE_MODE_NONE);
         M5.EPD.UpdateFull(UPDATE_MODE_GC16);
     }
     _scan_count++;
-    
-    int wifi_num = 0;
 
-    if (ret < 0)
+    int connect_wifi_idx = -1;
+    if(_connected)
     {
-        log_d("idfm5: scanNetworks failed: %d",ret);
-    }
-    else 
-    {
-        while(1)
+        for(int i = 0; i < wifi_num; i++)
         {
-            log_d("idfm5: WiFi.scanComplete");
-            wifi_num = WiFi.scanComplete();
-            log_d("idfm5: scanComplete Networks: %d",wifi_num);
-            if(wifi_num >= 0)
+            ap = wifi_manager_get_ap(i);
+            std::string str((char*)(ap.ssid));
+            String ssid(str.c_str());
+            
+            if(_connect_ssid.length() >= 1 && ssid == _connect_ssid)
             {
+                connect_wifi_idx = i;
+                if(ap.rssi < -90)
+                {
+                    connect_wifi_idx = -1;
+                }
                 break;
             }
         }
-
-        int connect_wifi_idx = -1;
-        if(_connected)
+        if(connect_wifi_idx == -1)
         {
-            for(int i = 0; i < wifi_num; i++)
-            {
-                String ssid = WiFi.SSID(i);
-                
-                if(ssid == _connect_ssid)
-                {
-                    connect_wifi_idx = i;
-                    if(WiFi.RSSI(i) < -90)
-                    {
-                        connect_wifi_idx = -1;
-                    }
-                    break;
-                }
-            }
-            if(connect_wifi_idx == -1)
-            {
-                WiFi.disconnect();
-                _key_wifi[0]->SetEnable(true);
-                _connected = 0;
-                for(int i = 1; i < MAX_BTN_NUM; i++)
-                {
-                    _key_wifi[i]->SetPos(_key_wifi[i]->getX(), _key_wifi[i]->getY() - 32);
-                }
-            }
+            Discon();
+            _key_wifi[0]->SetEnable(true);
+            _connected = 0;
+            moveButtons(-32);
         }
+    }
 
-        wifi_num = wifi_num > MAX_WIFI_NUM ? MAX_WIFI_NUM : wifi_num;
-        wifi_num -= _connected;
+    wifi_num = wifi_num > MAX_WIFI_NUM ? MAX_WIFI_NUM : wifi_num;
 
-        for(int i = _connected; i < MAX_BTN_NUM; i++)
+    for(int i = _connected; i < MAX_BTN_NUM; i++)
+    {
+        // log_d("Frame_WifiScan SetHide %d %x %s %s",i,*(_key_wifi+sizeof(EPDGUI_Button *)*i),_key_wifi[i]->getLabel().c_str(),_key_wifi[i]->GetCustomString().c_str());
+        _key_wifi[i]->SetHide(true);
+    }
+
+    if(_connected)
+    {
+        _key_wifi[0]->Draw(UPDATE_MODE_A2);
+    }
+
+    int idx = 0;
+    while(wifi_num >= 1)
+    {
+        log_d("wifi_num %d, _connected %d, connect_wifi_idx %d, idx %d",wifi_num, _connected, connect_wifi_idx, idx);
+        if(idx == connect_wifi_idx)
         {
-            _key_wifi[i]->SetHide(true);
-        }
-
-        if(_connected)
-        {
-            _key_wifi[0]->Draw(UPDATE_MODE_A2);
-        }
-
-        int idx = 0, cnt = _connected;
-        while(1)
-        {
-            if(idx == connect_wifi_idx)
-            {
-                idx++;
-                continue;
-            }
-
-            String ssid = WiFi.SSID(idx);
-            DrawItem(_key_wifi[cnt], ssid, WiFi.RSSI(idx));
-            _key_wifi[cnt]->Draw(UPDATE_MODE_A2);
-
             idx++;
-            if(idx == wifi_num)
-            {
-                break;
-            }
-
-            cnt++;
+            continue;
         }
+
+        ap = wifi_manager_get_ap(idx);
+
+        std::string str((char*)(ap.ssid));
+        String ssid(str.c_str());
+        DrawItem(_key_wifi[idx], ssid, ap.rssi);
+        _key_wifi[idx]->Draw(UPDATE_MODE_A2);
+
+        idx++;
+        if(idx == wifi_num || (_connected && idx == MAX_WIFI_NUM-1))
+            break;
     }
 
-    _key_wifi[wifi_num]->SetCustomString("_$refresh$_");
-    _key_wifi[wifi_num]->SetHide(false);
-    _key_wifi[wifi_num]->CanvasNormal()->fillCanvas(0);
-    _key_wifi[wifi_num]->CanvasNormal()->drawRect(0, 0, 532, 61, 15);
-    _key_wifi[wifi_num]->CanvasNormal()->pushImage(15, 14, 32, 32, ImageResource_item_icon_refresh_32x32);
-    if(_language == LANGUAGE_JA)
-    {
-        _key_wifi[wifi_num]->CanvasNormal()->drawString("刷新", 58, 35);
-    }
-    else if(_language == LANGUAGE_ZH)
-    {
-        _key_wifi[wifi_num]->CanvasNormal()->drawString("刷新", 58, 35);
-    }
-    else
-    {
-        _key_wifi[wifi_num]->CanvasNormal()->drawString("Refresh", 58, 35);
-    }
-    *(_key_wifi[wifi_num]->CanvasPressed()) = *(_key_wifi[wifi_num]->CanvasNormal());
-    _key_wifi[wifi_num]->CanvasPressed()->ReverseColor();
-    _key_wifi[wifi_num]->Draw(UPDATE_MODE_A2);
+    _key_wifi[idx]->SetCustomString("_$refresh$_");
+    _key_wifi[idx]->SetHide(false);
+    _key_wifi[idx]->CanvasNormal()->fillCanvas(0);
+    _key_wifi[idx]->CanvasNormal()->drawRect(0, 0, 532, 61, 15);
+    _key_wifi[idx]->CanvasNormal()->pushImage(15, 14, 32, 32, ImageResource_item_icon_refresh_32x32);
+    _key_wifi[idx]->CanvasNormal()->drawString("Refresh", 58, 35);
+    *(_key_wifi[idx]->CanvasPressed()) = *(_key_wifi[idx]->CanvasNormal());
+    _key_wifi[idx]->CanvasPressed()->ReverseColor();
+    _key_wifi[idx]->Draw(UPDATE_MODE_A2);
 
     M5.EPD.UpdateFull(UPDATE_MODE_GL16);
     // M5.EPD.UpdateArea(0, 64, 540, 72, UPDATE_MODE_GL16);
 
-    WiFi.scanDelete();
-
     return 0;
+}
+
+void Frame_WifiScan::Discon()
+{
+    log_d("Frame_WifiScan::Discon()");
+    bool dummy;
+    epdgui_args_vector_t dargs = {(void*)(&_connected),(void*)(&dummy),(void*)(&_connect_ssid)};
+    disconnect(dargs);
 }
 
 void Frame_WifiScan::Connect()
 {
+    log_d("Frame_WifiScan::Connect()");
+    uint32_t start_time;
     int anime_cnt = 0;
     int x = 532 - 15 - 32;
     int y = _connect_key->getY() + 14;
@@ -268,12 +321,21 @@ void Frame_WifiScan::Connect()
     loading.fillCanvas(0);
     loading.pushCanvas(x, y, UPDATE_MODE_GL16);
     _connect_ssid = _connect_key->GetCustomString();
-    log_d("SSID = [%s]\n", _connect_ssid.c_str());
-    log_d("PSWD = [%s]\n", _connect_password.c_str());
-    WiFi.disconnect();
-    WiFi.begin(_connect_ssid.c_str(), _connect_password.c_str());
-    uint32_t start_time = millis();
-    while (WiFi.status() != WL_CONNECTED)
+    log_d("SSID = [%s] PSWD = [%s]", _connect_ssid.c_str(), _connect_password.c_str());
+
+    if (_connected)
+    {
+        Discon();
+        _connect_ssid = _connect_key->GetCustomString();
+    }
+    
+	wifi_manager_set_callback(WM_EVENT_STA_GOT_IP, &cb_connect_ok);
+    connect_reply = 0;
+    wifi_manager_set_wifi_sta_config(_connect_ssid.c_str(), _connect_password.c_str());
+    wifi_manager_connect_async();
+
+    start_time = millis();
+    while (connect_reply == 0)
     {
         loading.pushImage(0, 0, 32, 32, GetLoadingIMG_32x32(anime_cnt));
         loading.pushCanvas(x, y, UPDATE_MODE_DU4);
@@ -291,27 +353,15 @@ void Frame_WifiScan::Connect()
             err.setTextSize(26);
             err.setTextColor(0);
             err.setTextDatum(CC_DATUM);
-            if(_language == LANGUAGE_JA)
-            {
-                err.drawString("パスワードが違います", 150, 55);
-            }
-            else if(_language == LANGUAGE_ZH)
-            {
-                err.drawString("密码错误", 150, 55);
-            }
-            else
-            {
-                err.drawString("Wrong password", 150, 55);
-            }
+            err.drawString("Wrong password", 150, 55);
             err.pushCanvas(120, 430, UPDATE_MODE_GL16);
+            _connected = 0;
+            scan();
             return;
         }
     }
 
-    for(int i = 1; i < MAX_BTN_NUM; i++)
-    {
-        _key_wifi[i]->SetPos(_key_wifi[i]->getX(), _key_wifi[i]->getY() + 32);
-    }
+    moveButtons(32);
 
     _connect_key->CanvasNormal()->pushImage(532 - 15 - 32, 14, 32, 32, ImageResource_item_icon_success_32x32);
     
@@ -319,7 +369,7 @@ void Frame_WifiScan::Connect()
     _key_wifi[0]->SetHide(false);
     if(_connect_key != _key_wifi[0])
     {
-         *(_key_wifi[0]->CanvasNormal()) = *(_connect_key->CanvasNormal());
+        *(_key_wifi[0]->CanvasNormal()) = *(_connect_key->CanvasNormal());
         *(_key_wifi[0]->CanvasPressed()) = *(_connect_key->CanvasNormal());
         _key_wifi[0]->CanvasPressed()->ReverseColor();
     }
@@ -328,7 +378,7 @@ void Frame_WifiScan::Connect()
     _connected = 1;
 
     SetWifi(_connect_ssid, _connect_password);
-    // SyncNTPTime();
+    SyncNTPTime();
     scan();
 }
 
@@ -336,10 +386,7 @@ void Frame_WifiScan::SetConnected(String ssid, int rssi)
 {
     _connect_ssid = ssid;
     DrawItem(_key_wifi[0], ssid, rssi);
-    for(int i = 1; i < MAX_BTN_NUM; i++)
-    {
-        _key_wifi[i]->SetPos(_key_wifi[i]->getX(), _key_wifi[i]->getY() + 32);
-    }    
+    moveButtons(32);
     _key_wifi[0]->SetEnable(false);
     _key_wifi[0]->SetHide(false);
     _connected = 1;
@@ -347,6 +394,7 @@ void Frame_WifiScan::SetConnected(String ssid, int rssi)
 
 int Frame_WifiScan::init(epdgui_args_vector_t &args)
 {
+    log_d("Frame_WifiScan::init %d", args.size());
     _is_run = 1;
     _connect = false;
     M5.EPD.WriteFullGram4bpp(GetWallpaper());
@@ -381,6 +429,7 @@ int Frame_WifiScan::init(epdgui_args_vector_t &args)
         _connect = false;
     }
     EPDGUI_AddObject(_key_exit);
+    EPDGUI_AddObject(_key_tr);
     
     return 3;
 }

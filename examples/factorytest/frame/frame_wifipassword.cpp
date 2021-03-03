@@ -35,7 +35,7 @@ Frame_WifiPassword::Frame_WifiPassword(bool isHorizontal) : Frame_Base()
     
     inputbox->SetTextMargin(8, 15, 8, 8);
     inputbox->SetState(EPDGUI_Textbox::EVENT_PRESSED);
-
+    
     keyboard = new EPDGUI_Keyboard(isHorizontal, EPDGUI_Keyboard::STYLE_INPUTMODE_NEEDCONFIRM);
     
     key_textclear->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0, (void*)inputbox);
@@ -87,7 +87,6 @@ int Frame_WifiPassword::run(void)
     {
         String *pswd = new String(inputbox->GetText());
         EPDGUI_AddFrameArg("Frame_WifiScan", 0, pswd);        
-        inputbox->SetText("");
         EPDGUI_PopFrame();
         _is_run = 0;
         return 0;

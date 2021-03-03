@@ -167,3 +167,8 @@ endif()
 if(IDF_TARGET STREQUAL "esp32s2")
 target_compile_options(${COMPONENT_TARGET} PUBLIC -DARDUINO=10812 -DARDUINO_ESP32S2_DEV -DARDUINO_ARCH_ESP32 -DARDUINO_BOARD="ESP32S2_DEV" -DARDUINO_VARIANT="esp32s2" -DESP32)
 endif()
+
+component_compile_options(
+        -DCORE_DEBUG_LEVEL=4
+        -DBOARD_HAS_PSRAM
+        -mfix-esp32-psram-cache-issue)

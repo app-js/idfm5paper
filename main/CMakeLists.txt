@@ -1,7 +1,10 @@
 message(STATUS "Settings main")
 
-idf_component_register(SRCS "main.cpp" "calculator.cpp" "epdgui/epdgui_base.cpp" "epdgui/epdgui_button.cpp" "epdgui/epdgui_mutexswitch.cpp"  "epdgui/epdgui_switch.cpp" "epdgui/epdgui_textbox.cpp" "epdgui/epdgui.cpp"
-                       INCLUDE_DIRS "." "./epdgui")
+set(COMPONENT_SRCDIRS "." "epdgui" "frame")
+
+set(COMPONENT_ADD_INCLUDEDIRS "resources")
+
+register_component()
 
 component_compile_options(
                 -Wno-unused-const-variable
